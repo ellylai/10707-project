@@ -6,6 +6,10 @@ class GraphAttention():
     pass
 
 class W2V2_AASIST(nn.Module):
+    """
+    Input: .wav
+    Output: binary class
+    """
     def __init__(self):
         super().__init__()
 

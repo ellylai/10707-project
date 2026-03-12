@@ -12,6 +12,9 @@ Cross domain:
 def get_speechfake(splits=[]):
     # SpeechFake has Train, Validation, and Test
     # splits is in train, val or test
+    """
+    DataType: .wav
+    """
     speechfake = load_dataset("DeepFense/SpeechFake")
     if not splits:
         return speechfake
