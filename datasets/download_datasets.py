@@ -1,12 +1,13 @@
 # Downloads datasets from HuggingFace
 from datasets import load_dataset, Audio
-# Datasets (multilingual)
-# In domain:
-# Train + Val: SpeechFake (Train+Val set)
-# Test: SpeechFake (Test set)
-# Cross domain:
-# Train: SpeechFake (Train+Val set)
-# Test: XMAD-Bench (Cross-domain split) [sota]
+'''
+In domain:
+    Train + Val: SpeechFake (Train+Val set)
+    Test: SpeechFake (Test set)
+Cross domain:
+    Train: SpeechFake (Train+Val set)
+    Test: XMAD-Bench (Cross-domain split) [sota]
+'''
 
 def get_speechfake(splits=[]):
     # SpeechFake has Train, Validation, and Test
