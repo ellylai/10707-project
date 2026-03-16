@@ -38,3 +38,22 @@ def get_xmad(splits=[], data_dir="data/xmad-bench"):
         return xmad
     else:
         return [xmad[split] for split in splits]
+
+def collate_fn(batch):
+    # Wav2Vec2 expects (Batch, Sequence_Length)
+    # Ensure all waveforms in a batch are the same length (e.g., 64000 samples for 4s)
+    max_len = 64000 
+    waveforms = []
+    labels = []
+    
+    for item in batch:
+        audio = item['audio']['array']
+        if len(audio) > max_len:
+            audio = audio[:max_len]
+        else:
+            audio = np.pad(audio, (0, max_len - len(audio)))
+        
+        waveforms.append(torch.tensor(audio))
+        labels.append(item['label']) # Assuming 'label' key exists
+        
+    return torch.stack(waveforms), torch.tensor(labels)
