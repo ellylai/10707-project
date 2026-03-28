@@ -17,13 +17,24 @@ Fusion mechanism → sigmoid → binary classification
 Output = binary classification
 '''
 
+import torch.nn as nn
+from acousticstream import AcousticStream
+from prosodicstream import ProsodicStream
+
 class DUALSTREAM(nn.Module):
     """
     Input: raw 1D .wav waveform
     Output: binary classification
     """
     def __init__(self, args):
-        ...
-    
+        self.acoustic = AcousticStream(...)
+        self.prosodic = ProsodicStream(...)
+        self.fusion = ...
+            
     def forward(self, x):
-        ...
+        acoustic_output = self.acoustic.forward(x)
+        prosodic_output = self.prosodic.forward(x)
+        
+        output = self.fusion.forward(acoustic_output, prosodic_output)
+        
+        return output
