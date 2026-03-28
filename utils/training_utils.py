@@ -8,7 +8,7 @@ def train_epoch(model, loader, optimizer, criterion, device):
         waveforms, labels = waveforms.to(device), labels.to(device)
         
         optimizer.zero_grad()
-        _, logits = model(waveforms)
+        logits = model(waveforms)
         loss = criterion(logits, labels)
         loss.backward()
         optimizer.step()
@@ -25,7 +25,7 @@ def validate(model, loader, criterion, device):
     with torch.no_grad():
         for waveforms, labels in tqdm(loader, desc="Validating"):
             waveforms, labels = waveforms.to(device), labels.to(device)
-            _, logits = model(waveforms)
+            logits = model(waveforms)
             
             loss = criterion(logits, labels)
             total_loss += loss.item()
