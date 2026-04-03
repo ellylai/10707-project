@@ -15,8 +15,8 @@ class ConvolutionalTransformer(nn.Module):
         self.conv_subsample = nn.Sequential(
             nn.Conv1d(embed_dim, embed_dim, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
-            nn.BatchNorm1d(embed_dim),
         )
+        self.layer_norm = nn.LayerNorm(embed_dim)
 
         # Self-Attention
         self.encoder_layer = nn.TransformerEncoderLayer(
@@ -34,6 +34,8 @@ class ConvolutionalTransformer(nn.Module):
         x = self.conv_subsample(x)
         x = x.transpose(1, 2)
 
+        x = self.layer_norm(x)
+
         x = self.transformer(x)
         x = x.transpose(1, 2)
         return self.pool(x).squeeze(-1)  # Output: (batch, 1024)
@@ -45,6 +47,8 @@ class AcousticStream(nn.Module):
         self.embedder = Wav2Vec2Model.from_pretrained(
             "facebook/wav2vec2-large-xlsr-53"
         )  # -> (batch, seq_len, 1024)
+        for param in self.embedder.parameters():
+            param.requires_grad = False
         self.conv_transformer = ConvolutionalTransformer()  # -> (batch, 1024)
         self.standalone = standalone
         if standalone:
