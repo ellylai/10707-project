@@ -19,7 +19,7 @@ Output = binary classification
 
 import torch.nn as nn
 from acousticstream import AcousticStream
-from prosodicstream import ProsodicStream
+from articulatorystream import ArticStream
 
 class DUALSTREAM(nn.Module):
     """
@@ -28,7 +28,7 @@ class DUALSTREAM(nn.Module):
     """
     def __init__(self, args):
         self.acoustic = AcousticStream(...)
-        self.prosodic = ProsodicStream(...)
+        self.prosodic = ArticStream(...)
         self.fusion = ...
             
     def forward(self, x):
