@@ -23,7 +23,8 @@ class ConvolutionalTransformer(nn.Module):
             d_model=embed_dim, nhead=num_heads, dim_feedforward=ff_dim, batch_first=True
         )
         self.transformer = nn.TransformerEncoder(self.encoder_layer, num_layers=3)
-        self.pool = nn.AdaptiveAvgPool1d(1)
+        self.avg_pool = nn.AdaptiveAvgPool1d(1)
+        self.max_pool = nn.AdaptiveMaxPool1d(1)
 
     def forward(self, x):
         """
@@ -38,7 +39,10 @@ class ConvolutionalTransformer(nn.Module):
 
         x = self.transformer(x)
         x = x.transpose(1, 2)
-        return self.pool(x).squeeze(-1)  # Output: (batch, 1024)
+        
+        avg_x = self.avg_pool(x).squeeze(-1)
+        max_x = self.max_pool(x).squeeze(-1)
+        return torch.cat([avg_x, max_x], dim=1) # Output: (batch, 2048)
 
 
 class AcousticStream(nn.Module):
@@ -56,24 +60,27 @@ class AcousticStream(nn.Module):
 
     def forward(self, x):
         x = self.embedder(x).last_hidden_state  # (batch, seq_len, 1024)
-        output = self.conv_transformer(x)
+        features = self.conv_transformer(x)
 
         if self.standalone:
-            output = self.classifier(output)  # (batch, 2)
-        return output  # (batch, 1024)
+            output = self.classifier(features)  # (batch, 2)
+            return output
+        return output  # (batch, 2048)
 
 
 class BinaryClassifier(nn.Module):
     def __init__(
-        self, input_size=1024, hidden_size=512
+        self, input_size=2048, hidden_size=512
     ):  # chose 512 for no particular reason
         super(BinaryClassifier, self).__init__()
         self.fc1 = nn.Linear(input_size, hidden_size)
         self.relu = nn.ReLU()
         self.fc2 = nn.Linear(hidden_size, 2)
+        self.dropout = nn.Dropout(0.5)
 
     def forward(self, x):
         x = self.fc1(x)
         x = self.relu(x)
+        x = self.dropout(x)
         x = self.fc2(x)
         return x

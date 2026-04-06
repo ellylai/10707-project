@@ -1,7 +1,7 @@
 import torch
 from tqdm import tqdm
 
-def train_epoch(model, loader, optimizer, criterion, device):
+def train_epoch(model, loader, optimizer, scheduler, criterion, device):
     model.train()
     total_loss = 0
     for waveforms, labels in tqdm(loader, desc="Training"):
@@ -12,6 +12,7 @@ def train_epoch(model, loader, optimizer, criterion, device):
         loss = criterion(logits, labels)
         loss.backward()
         optimizer.step()
+        scheduler.step()
         
         total_loss += loss.item()
     return total_loss / len(loader)
