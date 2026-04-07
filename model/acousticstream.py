@@ -40,8 +40,9 @@ class ConvolutionalTransformer(nn.Module):
         x = self.transformer(x)
         x = x.transpose(1, 2)
 
-        avg_x = self.avg_pool(x).squeeze(-1)
-        max_x = self.max_pool(x).squeeze(-1)
+        x_abs = torch.abs(x)
+        avg_x = self.avg_pool(x_abs).squeeze(-1)
+        max_x = self.max_pool(x_abs).squeeze(-1)
         return torch.cat([avg_x, max_x], dim=1)  # Output: (batch, 2048)
 
 
@@ -63,7 +64,7 @@ class AcousticStream(nn.Module):
         if self.standalone:
             output = self.classifier(features)  # (batch, 2)
             return output
-        return output  # (batch, 2048)
+        return features  # (batch, 2048)
 
 
 class BinaryClassifier(nn.Module):
