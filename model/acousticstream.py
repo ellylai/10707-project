@@ -39,10 +39,10 @@ class ConvolutionalTransformer(nn.Module):
 
         x = self.transformer(x)
         x = x.transpose(1, 2)
-        
+
         avg_x = self.avg_pool(x).squeeze(-1)
         max_x = self.max_pool(x).squeeze(-1)
-        return torch.cat([avg_x, max_x], dim=1) # Output: (batch, 2048)
+        return torch.cat([avg_x, max_x], dim=1)  # Output: (batch, 2048)
 
 
 class AcousticStream(nn.Module):
@@ -51,8 +51,6 @@ class AcousticStream(nn.Module):
         self.embedder = Wav2Vec2Model.from_pretrained(
             "facebook/wav2vec2-large-xlsr-53"
         )  # -> (batch, seq_len, 1024)
-        for param in self.embedder.parameters():
-            param.requires_grad = False
         self.conv_transformer = ConvolutionalTransformer()  # -> (batch, 1024)
         self.standalone = standalone
         if standalone:
