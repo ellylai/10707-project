@@ -59,7 +59,7 @@ class AcousticStream(nn.Module):
 
     def forward(self, x):
         x = self.embedder(x).last_hidden_state  # (batch, seq_len, 1024)
-        features = self.conv_transformer(x)
+        features = self.conv_transformer(x) # (B, 2048)
 
         if self.standalone:
             output = self.classifier(features)  # (batch, 2)
