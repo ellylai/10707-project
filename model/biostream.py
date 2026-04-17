@@ -15,6 +15,7 @@ class BioStreamLSTM(nn.Module):
         bidirectional: bool = True,
         dropout: float = 0.3,
         pooling: str = "mean",
+        standalone: bool = False,
     ):
         super().__init__()
 
@@ -22,7 +23,12 @@ class BioStreamLSTM(nn.Module):
             raise ValueError("pooling must be 'mean' or 'last'")
 
         self.pooling = pooling
+        self.standalone = standalone
+        self.bidirectional = bidirectional
+        self.hidden_dim = hidden_dim
+
         lstm_out_dim = hidden_dim * (2 if bidirectional else 1)
+        self.feature_dim = lstm_out_dim
 
         self.input_norm = nn.LayerNorm(input_dim)
 
@@ -74,5 +80,8 @@ class BioStreamLSTM(nn.Module):
         else:
             pooled = self._last_pool(out, lengths)
 
-        logits = self.classifier(pooled).squeeze(1)  # [B]
-        return logits
+        if self.standalone:
+            logits = self.classifier(pooled).squeeze(1)  # [B]
+            return logits
+
+        return pooled  # [B, feature_dim = hidden_dim * 2 (if bidirectional)]
