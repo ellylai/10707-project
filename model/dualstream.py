@@ -20,10 +20,10 @@ import torch
 import torch.nn as nn
 
 from acousticstream import AcousticStream, BinaryClassifier
-from articulatorystream import ArticStream
+from biostream import BioStreamLSTM
 
 class CrossAttentionFusion(nn.Module):
-    def __init__(self, embed_dim=2048, num_heads=8):
+    def __init__(self, embed_dim=512, num_heads=8):
         super().__init__()
         # Multi-Head Attention where:
         # Query = Stream A
@@ -37,14 +37,10 @@ class CrossAttentionFusion(nn.Module):
             nn.Linear(embed_dim, embed_dim)
         )
 
-    def forward(self, x_acoustic, x_prosodic):
-        """
-        x_acoustic: (batch, seq_len, 2048)
-        x_prosodic: (batch, seq_len, 2048) 
-        """
-        # 1. Cross-Attention: Acoustic attends to Prosodic
-        # Query: Acoustic, Key: Prosodic, Value: Prosodic
-        attn_output, _ = self.multihead_attn(x_acoustic, x_prosodic, x_prosodic)
+    def forward(self, x_acoustic, x_biometric):
+        # 1. Cross-Attention: Acoustic attends to Biometric
+        # Query: Acoustic, Key: Biometric, Value: Biometric
+        attn_output, _ = self.multihead_attn(x_acoustic, x_biometric, x_biometric)
         
         # 2. Residual connection & Norm
         x = self.norm(attn_output + x_acoustic)
@@ -60,18 +56,32 @@ class DUALSTREAM(nn.Module):
     Input: raw 1D .wav waveform
     Output: binary classification
     """
-    def __init__(self, args):
-        self.acoustic = AcousticStream() # pre-sigmoid output is (B, 2048)
-        self.prosodic = ArticStream(...)
-        self.fusion = CrossAttentionFusion()
-        self.classifier = BinaryClassifier() # (B, 2048) -> (B, 2)
+    def __init__(self, projection_dim=512, standalone=False):
+        super(DUALSTREAM, self).__init__()
+        
+        # ACOUSTIC STREAM
+        self.acoustic = AcousticStream(standalone=standalone) # (B, 2048)
+        self.acoustic_linear = nn.Linear(2048, projection_dim) # (B, 2048) -> (B, 512)
+        
+        # PROSODIC STREAM
+        self.biostream = BioStreamLSTM(hidden_dim=projection_dim/2) # (B, 512)
+        
+        # FUSTION
+        self.fusion = CrossAttentionFusion(embed_dim=projection_dim) # (B, 512) -> (B, 512)
+        
+        # CLASSIFIER HEAD
+        self.classifier = BinaryClassifier(input_size=projection_dim) # (B, 512) -> (B, 2)
             
-    def forward(self, x):
-        acoustic_output = self.acoustic.forward(x) # (B, 2048)
-        prosodic_output = self.prosodic.forward(x) # (B, 2048)
+    def forward(self, x_raw, x_bio):
+        # ACOUSTIC STREAM
+        a_out = self.acoustic(x_raw) # (B, 2048)
+        acoustic_output = self.acoustic_linear(a_out) # (B, 2048) -> (B, 512)
+        
+        # BIO STREAM
+        bio_output = self.biostream.forward(x_bio) # -> (B, 512)
         
         # fuse the output of the two streams using cross attention
-        features = self.fusion.forward(acoustic_output, prosodic_output) # (B, 2048)
+        features = self.fusion.forward(acoustic_output, bio_output) # (B, 512)
         
         # binary classifier head on fused features
         output = self.classifier.forward(features) # (B, 2)
