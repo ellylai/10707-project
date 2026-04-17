@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Dict, List, Union
+from typing import Dict, List
 import numpy as np
 
 from shared_audio_processor import Segment, SharedAudioProcessor
@@ -19,7 +18,6 @@ class ProsodicFeatureExtractor:
       - voiced_fraction
       - intensity_mean
       - intensity_std
-      - segment_duration (optional, redundant when combining with articulatory features) [REMOVED OUT FOR NOW]
     """
 
     def __init__(
@@ -35,8 +33,8 @@ class ProsodicFeatureExtractor:
         self.pitch_ceiling = pitch_ceiling
         self.time_step = time_step
 
-    def _extract_frame_tracks(self, audio_path: Union[str, Path]) -> Dict[str, np.ndarray]:
-        sound = self.shared.load_sound(audio_path)
+    def _extract_frame_tracks(self, audio_input: AudioInput) -> Dict[str, np.ndarray]:
+        sound = self.shared.load_sound_any(audio_input)
 
         pitch = sound.to_pitch(
             time_step=self.time_step,
@@ -94,23 +92,22 @@ class ProsodicFeatureExtractor:
                     voiced_fraction,
                     self.shared.safe_mean(intensity_valid),
                     self.shared.safe_std(intensity_valid),
-                    # seg.duration, # redundant when combining with articulatory features
                 ],
                 dtype=np.float32,
             )
             rows.append(row)
 
         if not rows:
-            return np.zeros((0, 8), dtype=np.float32)
+            return np.zeros((0, 7), dtype=np.float32)
 
         return np.stack(rows, axis=0).astype(np.float32)
 
     def extract_from_segments(
         self,
-        audio_path: Union[str, Path],
+        audio_input: AudioInput,
         segments: List[Segment],
     ) -> Dict:
-        tracks = self._extract_frame_tracks(audio_path)
+        tracks = self._extract_frame_tracks(audio_input)
         segment_feature_sequence = self._segment_prosody(tracks, segments)
         utterance_feature_vector = self.shared.pooled_stats(segment_feature_sequence)
 

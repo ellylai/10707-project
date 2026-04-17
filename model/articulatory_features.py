@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -151,9 +150,9 @@ class ArticulatoryFeatureExtractor:
 
         return np.stack(rows, axis=0).astype(np.float32)
 
-    def extract(self, audio_path: Union[str, Path]) -> Dict:
-        wav = self.shared.load_audio(audio_path)
-        wav_torch = torch.tensor(wav, dtype=torch.float32, device=self.device).unsqueeze(0)
+    def extract(self, audio_input: AudioInput) -> Dict:
+        wav = self.shared.load_audio_any(audio_input)
+        wav_torch = self.shared.load_audio_torch_any(audio_input, self.device)
 
         logits = self._infer_logits(wav_torch)
         decoded = self._decode_frames(logits)
@@ -174,8 +173,8 @@ class ArticulatoryFeatureExtractor:
             "utterance_feature_vector": utterance_feature_vector,
         }
 
-    def extract_feature_vector(self, audio_path: Union[str, Path]) -> np.ndarray:
-        return self.extract(audio_path)["utterance_feature_vector"]
+    def extract_feature_vector(self, audio_input: AudioInput) -> np.ndarray:
+        return self.extract(audio_input)["utterance_feature_vector"]
 
-    def extract_segment_sequence(self, audio_path: Union[str, Path]) -> np.ndarray:
-        return self.extract(audio_path)["segment_feature_sequence"]
+    def extract_segment_sequence(self, audio_input: AudioInput) -> np.ndarray:
+        return self.extract(audio_input)["segment_feature_sequence"]
