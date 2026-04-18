@@ -64,7 +64,7 @@ class DUALSTREAM(nn.Module):
         self.acoustic_linear = nn.Linear(2048, projection_dim) # (B, 2048) -> (B, 512)
         
         # PROSODIC STREAM
-        self.biostream = BioStreamLSTM(hidden_dim=projection_dim/2) # (B, 512)
+        self.biostream = BioStreamLSTM(input_dim=404, hidden_dim=projection_dim/2) # (B, 512)
         
         # FUSTION
         self.fusion = CrossAttentionFusion(embed_dim=projection_dim) # (B, 512) -> (B, 512)
@@ -72,13 +72,13 @@ class DUALSTREAM(nn.Module):
         # CLASSIFIER HEAD
         self.classifier = BinaryClassifier(input_size=projection_dim) # (B, 512) -> (B, 2)
             
-    def forward(self, x_raw, x_bio):
+    def forward(self, x_raw, x_bio, lengths):
         # ACOUSTIC STREAM
         a_out = self.acoustic(x_raw) # (B, 2048)
         acoustic_output = self.acoustic_linear(a_out) # (B, 2048) -> (B, 512)
         
         # BIO STREAM
-        bio_output = self.biostream.forward(x_bio) # -> (B, 512)
+        bio_output = self.biostream.forward(x_bio, lengths) # -> (B, 512)
         
         # fuse the output of the two streams using cross attention
         features = self.fusion.forward(acoustic_output, bio_output) # (B, 512)
