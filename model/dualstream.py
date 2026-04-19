@@ -38,6 +38,9 @@ class CrossAttentionFusion(nn.Module):
         )
 
     def forward(self, x_acoustic, x_biometric):
+        x_acoustic = x_acoustic.unsqueeze(1)
+        x_biometric = x_biometric.unsqueeze(1)
+        
         # 1. Cross-Attention: Acoustic attends to Biometric
         # Query: Acoustic, Key: Biometric, Value: Biometric
         attn_output, _ = self.multihead_attn(x_acoustic, x_biometric, x_biometric)
@@ -64,7 +67,7 @@ class DUALSTREAM(nn.Module):
         self.acoustic_linear = nn.Linear(2048, projection_dim) # (B, 2048) -> (B, 512)
         
         # PROSODIC STREAM
-        self.biostream = BioStreamLSTM(input_dim=404, hidden_dim=projection_dim/2) # (B, 512)
+        self.biostream = BioStreamLSTM(input_dim=404, hidden_dim=int(projection_dim // 2)) # (B, 512)
         
         # FUSTION
         self.fusion = CrossAttentionFusion(embed_dim=projection_dim) # (B, 512) -> (B, 512)
@@ -73,6 +76,7 @@ class DUALSTREAM(nn.Module):
         self.classifier = BinaryClassifier(input_size=projection_dim) # (B, 512) -> (B, 2)
             
     def forward(self, x_raw, x_bio, lengths):
+        
         # ACOUSTIC STREAM
         a_out = self.acoustic(x_raw) # (B, 2048)
         acoustic_output = self.acoustic_linear(a_out) # (B, 2048) -> (B, 512)
